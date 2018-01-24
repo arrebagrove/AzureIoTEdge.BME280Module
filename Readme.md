@@ -38,7 +38,11 @@ Refer to this [document](https://microsoft.hackster.io/en-US/windows-iot/weather
 
 # Developing IoT Edge module in C#
 
-Being familiar with C# my first choice was to use .NET Core to develop the IoT Edge module. The problem I faced was finding a way to talk to the sensor in .NET Core. Most examples were using Windows IoT and I wanted to use a Linux OS. However, Adafruit (manufacturer of the sensor) provides good examples using Python. Being lazy, I wanted to call the python code from my C# module. Check the (repository)[src/cs/] to understand how.
+Being familiar with C# my first choice was to use .NET Core to develop the IoT Edge module. The problem I faced was finding a way to talk to the sensor in .NET Core. Most examples were using Windows IoT and I wanted to use a Linux OS. However, Adafruit (manufacturer of the sensor) provides good examples using Python. 
+
+Being lazy, I wanted to call the python code from my C# module. 
+
+Check the [repository](./src/cs/) to understand how.
 
 # Developing IoT Edge module in Python
 To be implemented
