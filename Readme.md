@@ -7,9 +7,10 @@ With [Azure IoT Edge](https://docs.microsoft.com/en-us/azure/iot-edge/) we are a
 This repository creates 2 IoT Edge modules that communicate between them like the diagram below:
 ![diagram](IotEdge-Diagram.png)
 
-1. bme280 module reads data from sensor and sents to output channel
-2. middleware module receives data from sensor (sent by $edgeHub) and sents to his output channel
-3. $edgeHub sends the output of middleware module to IoT Hub (as it was binded to $upstream)
+1. on a time interval bme280 module reads data from sensor
+2. bme280 sends measurements to output channel
+3. middleware module receives data from sensor (sent by $edgeHub) and sents to output channel
+4. $edgeHub sends the output of middleware module to IoT Hub (as it was binded to $upstream)
 
 # Hardware needed
 
