@@ -4,6 +4,13 @@
 
 With [Azure IoT Edge](https://docs.microsoft.com/en-us/azure/iot-edge/) we are able to install software from a portal (IoT Hub) to connected devices (edge). The aim of this project is to implement and deploy the sensor reader to a Raspberry PI as an Azure IoT Edge Module.
 
+This repository creates 2 IoT Edge modules that communicate between them like the diagram below:
+![diagram](IotEdge-Diagram.png)
+
+1. bme280 module reads data from sensor and sents to output channel
+2. middleware module receives data from sensor (sent by $edgeHub) and sents to his output channel
+3. $edgeHub sends the output of middleware module to IoT Hub (as it was binded to $upstream)
+
 # Hardware needed
 
 To get started you need the kit mentioned Windows 10 IoT Core Started Pack, or the following components:
