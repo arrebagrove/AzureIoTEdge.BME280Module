@@ -2,7 +2,7 @@
 
 [Microsoft Windows 10 IoT Core Starter Pack](https://developer.microsoft.com/en-us/windows/iot/Docs/AdafruitMakerKit.htm)  is a great way to start exploring the IoT world. It comes with a Rapberry PI 3 a BME208 Temperature/Humidity/Pressure sensor (among other things).
 
-With [Azure IoT Edge](https://docs.microsoft.com/en-us/azure/iot-edge/) we are able to install software from a portal (IoT Hub) to connected devices (edge). The aim of this project is to implement and deploy the sensor reader to a Raspberry PI as an IoT Azure Module.
+With [Azure IoT Edge](https://docs.microsoft.com/en-us/azure/iot-edge/) we are able to install software from a portal (IoT Hub) to connected devices (edge). The aim of this project is to implement and deploy the sensor reader to a Raspberry PI as an Azure IoT Edge Module.
 
 # Hardware needed
 
@@ -16,7 +16,7 @@ To get started you need the kit mentioned Windows 10 IoT Core Started Pack, or t
 
 # Getting Started
 
-A lot of the steps will refer to content from Jon Gallant. You should follow his blog.
+A lot of the steps will refer to content from Jon Gallant. You should follow his [blog](https://blog.jongallant.com/).
 
 1. [Setup Raspberry Pi](https://blog.jongallant.com/2017/11/raspberrypi-setup/)
 2. [Setup Raspberry Pi for Azure IoT Edge](https://blog.jongallant.com/2017/11/azure-iot-edge-raspberrypi/)

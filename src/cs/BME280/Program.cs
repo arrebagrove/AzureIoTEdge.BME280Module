@@ -1,6 +1,7 @@
 namespace AzureIoTEdge.BME280Module
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Runtime.InteropServices;
     using System.Runtime.Loader;
@@ -10,9 +11,12 @@ namespace AzureIoTEdge.BME280Module
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+        
     class Program
     {
+        static SensorReader sensorReader;
         static void Main(string[] args)
         {
             // The Edge runtime gives us the connection string we need -- it is injected as an environment variable
@@ -21,7 +25,7 @@ namespace AzureIoTEdge.BME280Module
             // Cert verification is not yet fully functional when using Windows OS for the container
             bool bypassCertVerification = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             if (!bypassCertVerification) InstallCert();
-            
+
             IoTEdgeModuleState state = null;
             try
             {
@@ -29,15 +33,21 @@ namespace AzureIoTEdge.BME280Module
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Error in the initialization\n{ex.ToString()}");                
+                Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Error in the initialization\n{ex.ToString()}");
                 Environment.ExitCode = 1;
                 return;
             }
-            
 
 
-            using (var sensorReader = new SensorReader(state))
+            var outputName = Environment.GetEnvironmentVariable("OutputName");
+            if (string.IsNullOrEmpty(outputName))
             {
+                outputName = "sensor";
+            };
+
+            using (sensorReader = new SensorReader(state, outputName))
+            {
+
                 sensorReader.StartReading();
 
                 // Wait until the app unloads or is cancelled
@@ -83,6 +93,8 @@ namespace AzureIoTEdge.BME280Module
             store.Close();
         }
 
+        static DateTime startupTime = DateTime.UtcNow;
+
 
         /// <summary>
         /// Initializes the DeviceClient and sets up the callback to receive
@@ -101,48 +113,41 @@ namespace AzureIoTEdge.BME280Module
 
             // open connection to edge
             var ioTHubModuleClient = await state.CreateAndOpenClient();
-            if (ioTHubModuleClient == null)                       
+            if (ioTHubModuleClient == null)
             {
                 Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Could not connect to {state.ConnectionString}. Aborting");
-                
+
             }
-            Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] IoT Hub module client initialized.");
+            Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] IoT Hub module client initialized.");            
 
-            // Register callback to be called when a message is received by the module
-            await ioTHubModuleClient.SetInputMessageHandlerAsync("input1", PipeMessage, ioTHubModuleClient);
-
+            await ioTHubModuleClient.SetMethodHandlerAsync("bme280status", HandleStatusMethod, null);
             return state;
         }
 
-        /// <summary>
-        /// This method is called whenever the module is sent a message from the EdgeHub. 
-        /// It just pipe the messages without any change.
-        /// It prints all the incoming messages.
-        /// </summary>
-        static async Task<MessageResponse> PipeMessage(Message message, object userContext)
+        private static Task<MethodResponse> HandleStatusMethod(MethodRequest methodRequest, object userContext)
         {
-         
-            var deviceClient = userContext as DeviceClient;
-            if (deviceClient == null)
-            {
-                throw new InvalidOperationException("UserContext doesn't contain " + "expected values");
-            }
+            Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Status method called");
 
-            byte[] messageBytes = message.GetBytes();
-            string messageString = Encoding.UTF8.GetString(messageBytes);
-            Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Received message: Body: [{messageString}]");
-
-            if (!string.IsNullOrEmpty(messageString))
+            var (measurement, _) = sensorReader.GetMeasurements();
+            
+            var responseBody = new Dictionary<string, object>()
             {
-                var pipeMessage = new Message(messageBytes);
-                foreach (var prop in message.Properties)
-                {
-                    pipeMessage.Properties.Add(prop.Key, prop.Value);
-                }
-                await deviceClient.SendEventAsync("output1", pipeMessage);
-                Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Received message sent");
-            }
-            return MessageResponse.Completed;
+                { "startTime", startupTime },
+                { "uptimeSeconds", DateTime.UtcNow.Subtract(startupTime).TotalSeconds },
+                { "device", measurement.Device },
+                { "temp", measurement.Temperature },
+                { "humidity", measurement.Humidity },
+                { "pressure", measurement.Pressure }
+            };
+
+
+            var jsonResponseBody = JsonConvert.SerializeObject(responseBody);
+
+            var res = new MethodResponse(Encoding.UTF8.GetBytes(jsonResponseBody), 200);
+
+            Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Status method returned: {jsonResponseBody}");                
+            
+            return Task.FromResult(res);
         }
     }
 }

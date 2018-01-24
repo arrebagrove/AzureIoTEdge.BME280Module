@@ -3,18 +3,22 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
+using Newtonsoft.Json;
 
 namespace AzureIoTEdge.BME280Module
 {
 
+    /// Sensor reader
     public class SensorReader : IDisposable
     {
         IoTEdgeModuleState state;
+        private readonly string outputName;
         private Timer timer;
 
-        public SensorReader(IoTEdgeModuleState state)
+        public SensorReader(IoTEdgeModuleState state, string outputName)
         {
             this.state = state;
+            this.outputName = outputName;
         }
 
 
@@ -23,7 +27,7 @@ namespace AzureIoTEdge.BME280Module
             this.timer = new Timer(async (s) => await ReadAndSend(s), this, 0, 1000 * intervalInSeconds);
         }
 
-        static string GetMeasurementsFromPython()
+        internal (MeasurementMessage, string) GetMeasurements()
         {
             var psi = new ProcessStartInfo("python", $"../Adafruit_Python_BME280/jsonoutput.py")
             {
@@ -33,9 +37,17 @@ namespace AzureIoTEdge.BME280Module
 
             var process = Process.Start(psi);
 
-            string output = process.StandardOutput.ReadToEnd();
+            string rawMeasurement = process.StandardOutput.ReadToEnd();            
             process.WaitForExit();
-            return output;
+
+            MeasurementMessage result = null;
+            if (!string.IsNullOrEmpty(rawMeasurement))
+            {
+                rawMeasurement = rawMeasurement.Replace(Environment.NewLine.ToString(), string.Empty);
+                result = JsonConvert.DeserializeObject<MeasurementMessage>(rawMeasurement);
+            }
+            
+            return (result, rawMeasurement);
         }
 
         static async Task ReadAndSend(object state)
@@ -43,14 +55,15 @@ namespace AzureIoTEdge.BME280Module
             var sensorReader = (SensorReader)state;
             try
             {
-                var messageText = GetMeasurementsFromPython()?.Replace(Environment.NewLine.ToString(), string.Empty);
+                var (measurements, rawMeasurement) = sensorReader.GetMeasurements();
 
                 var client = await sensorReader.state.CreateAndOpenClient();
-                var m = new Message(System.Text.Encoding.UTF8.GetBytes(messageText));
+                
+                var eventMessage = new Message(System.Text.Encoding.UTF8.GetBytes(rawMeasurement));
+            
+                await client.SendEventAsync(sensorReader.outputName, eventMessage);
 
-                await client.SendEventAsync(m);
-
-                Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Message sent to IoT Hub: {messageText}");
+                Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}] Event sent to sink '{sensorReader.outputName}': {rawMeasurement}");
             }
             catch (Exception ex)
             {
