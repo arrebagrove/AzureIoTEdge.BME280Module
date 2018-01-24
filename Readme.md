@@ -25,6 +25,8 @@ A lot of the steps will refer to content from Jon Gallant. You should follow his
 
 # Connecting Rapberry Pi to BME208 Sensor
 Refer to this [document](https://microsoft.hackster.io/en-US/windows-iot/weather-station-67e40d) to connect Pi with the sensor.
+![This is my version :)](RaspberryPiWithBME280.JPG)
+
 
 # Developing IoT Edge module in C#
 
